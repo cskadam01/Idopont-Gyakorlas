@@ -1,7 +1,10 @@
-from models import User, engine
+from models import User, Exercise, engine
 from sqlalchemy.orm import sessionmaker
 import tkinter as tk
 
+
+
+current_user = None
 
 
 
@@ -58,39 +61,51 @@ def HandleRegister():
 
 
 def HandleLogin():
+    global current_user  # globális változó, hogy mindenhol elérjük a bejelentkezett felhasználót
+
     try:
-        names = []
-        users = session.query(User).all()
-        for user in users:
-            names.append(user.name)
+        # Beolvasott értékek a Tkinter mezőkből
+        username_input = logName.get()
+        entered_password = logPass.get()
 
-        username = logName.get()
+        # Lekérdezzük az adatbázisból a felhasználót név alapján
+        user = session.query(User).filter_by(name=username_input).first()
 
-        # Ellenőrizzük, hogy létezik-e a név
-        if username in names:
-        # Ha igen, megkeressük a felhasználót a teljes listában
-            for user in users:
-                if user.name == username:
-                    actual_password = user.password
-                    break
-
-        # A beírt jelszó
-            entered_password = logPass.get()
-
-        # Ellenőrizzük a jelszót
-            if entered_password == actual_password:
+        # Ellenőrzés: létezik-e a felhasználó
+        if user:
+            # Jelszó egyezés ellenőrzés
+            if user.password == entered_password:
                 print("Sikeres belépés!")
+                current_user = user  # Beállítjuk a globális felhasználó változót
                 LoginPage.config(height=0, width=0)
+                excercisePage.config(height=1000, width=1000)
             else:
                 print("Hibás jelszó!")
         else:
             print("Nincs ilyen felhasználó!")
 
-            
-    except:
-        pass
+    except Exception as e:
+        print("Hiba történt a bejelentkezés során:", e)
 
 
+
+
+def addExcercise():
+    excercise_type =selected_option.get()
+    excercise_name = excerciseName.get()
+    excercise_descriotion = excerciseDescriotion.get()
+
+    if not excercise_name:
+        print("Nem adtál meg feladat nevet, kérlek Pótold")
+    
+    try:
+        newExcercise = Exercise(name=excercise_name, description = excercise_descriotion, etype=excercise_type, created_by= current_user.id)
+        session.add(newExcercise)
+        session.commit()
+        print("feladat hozzáadva")
+    except Exception as e:
+        print("Hiba lépett fel:", e)
+        
 
 
 
@@ -128,10 +143,11 @@ toRegButton.place(x=100, y=375,width=100, height=20)
 
 
 
+
+
+
 RegisterPage = tk.Canvas(window, height=0, width=0, borderwidth=0, highlightthickness=0, background="grey", )
 RegisterPage.place(x=0, y=0)
-
-
 
 RegisterCanva = tk.Canvas(RegisterPage, height= 400, width= 300, borderwidth=0, highlightthickness=0, background="#352dcf")
 RegisterCanva.place(x=350, y=300)
@@ -160,6 +176,29 @@ toLogButton.place(x=100, y=375,width=100, height=20)
 
 
 
+
+
+
+excercisePage = tk.Canvas(window, height=0, width=0, background='red', highlightthickness=0, borderwidth=0)
+excercisePage.place(x=0, y=0)
+
+#Feldat hozzaadasa
+
+excerciseName = tk.Entry(excercisePage)
+excerciseName.place(x=100, y=100)
+
+excerciseDescriotion = tk.Entry(excercisePage)
+excerciseDescriotion.place(x= 300, y=100)
+
+excerciseSubmit = tk.Button(excercisePage, height=2, width=10, text="Hozzáadás", command= addExcercise)
+excerciseSubmit.place(x=500, y=100)
+
+
+types= ["Mell", "Hát", "Láb", "Bicepsz", "Tricepsz", "Váll", "Alkar"]
+selected_option = tk.StringVar()
+selected_option.set(types[0])
+excerciseType = tk.OptionMenu(excercisePage, selected_option, *types)
+excerciseType.place(x=0, y=100)
 
 
 
